@@ -46,16 +46,16 @@
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     html, body {
-      margin: 0; padding: 0; min-height: 100%;
+      margin: 0; padding: 0; height: 100%;
       background: var(--bg-gradient);
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       color: var(--text-color);
-      overflow-x: hidden;
+      overflow: hidden;
       transition: background 0.4s ease, color 0.3s ease;
     }
     body {
-      display: flex; flex-direction: column; align-items: center;
-      min-height: 100vh; padding: 12px 10px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; height: 100dvh; padding: 8px;
       position: relative;
     }
     /* ===== ANIMATED BG + FLOATING PARTICLES ===== */
@@ -64,7 +64,7 @@
       pointer-events: none; z-index: 0;
     }
     /* ===== LAYOUT ===== */
-    .app-container { position: relative; z-index: 1; width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; }
+    .app-container { position: relative; z-index: 1; width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
     h1 {
       font-size: clamp(2rem, 7vw, 3.2rem);
       margin: 0 0 4px;
@@ -324,7 +324,6 @@
   <div class="landing-card">
     <div class="logo-xo"><span class="lx">X</span><span class="lo">O</span></div>
     <h1>TIC TAC TOE</h1>
-    <p>Choose your mode and settings to begin</p>
     <div class="landing-field">
       <label>Mode</label>
       <select id="landingMode">
@@ -1002,9 +1001,23 @@ function checkWin(player) {
 // ============================================================
 //  10. EVENT LISTENERS & INIT
 // ============================================================
-gridSizeEl.addEventListener('change', () => { updateGridOptionsForMode(); });
+gridSizeEl.addEventListener('change', () => { updateGridOptionsForMode(); setTimeout(fitToScreen, 50); });
 winLenEl.addEventListener('change', () => resetGame(true));
-gameModeEl.addEventListener('change', () => { updateGridOptionsForMode(); });
+gameModeEl.addEventListener('change', () => { updateGridOptionsForMode(); setTimeout(fitToScreen, 50); });
+function fitToScreen() {
+  const container = appContainerEl.style.visibility === 'hidden' ? document.querySelector('.landing-card') : appContainerEl;
+  if (!container) return;
+  container.style.transform = 'scale(1)';
+  const rect = container.getBoundingClientRect();
+  const scaleX = window.innerWidth / rect.width;
+  const scaleY = window.innerHeight / rect.height;
+  const scale = Math.min(1, scaleX, scaleY) * 0.96;
+  container.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', fitToScreen);
+window.addEventListener('load', fitToScreen);
+setTimeout(fitToScreen, 100);
+
 window.addEventListener('resize', () => { updateBoardSize(); resizeBurst(); });
 
 document.addEventListener('keydown', (e) => {
@@ -1050,12 +1063,14 @@ function startFromLanding() {
   appContainerEl.style.visibility = 'visible';
   setTimeout(() => { landingEl.style.display = 'none'; }, 400);
   updateGridOptionsForMode();
+  setTimeout(fitToScreen, 50);
 }
 
 function goBackToLanding() {
   appContainerEl.style.visibility = 'hidden';
   landingEl.style.display = 'flex';
   requestAnimationFrame(() => landingEl.classList.remove('hide'));
+  setTimeout(fitToScreen, 50);
 }
 
 populateWinLengthOptions();
