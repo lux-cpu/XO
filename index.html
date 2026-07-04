@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ultimate Tic Tac Toe</title>
+  <style>
+    /* ===== ROOT VARIABLES & THEMES ===== */
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 20%, #1b1440, #0f0c29 60%, #05040d);
+      --panel-bg: rgba(255,255,255,0.05);
+      --border-color: rgba(255,255,255,0.1);
+      --cell-bg: linear-gradient(145deg, #14112e, #1c1840);
+      --text-color: #fff;
+      --shadow-glow: #00f0ff;
+      --x-color: #ff4d6d;
+      --o-color: #00ffcc;
+      --card-bg: #14112e;
+      --btn-bg: #1c1840;
+      --btn-border: #3a3480;
+    }
+    body.theme-dark {
+      --bg-gradient: radial-gradient(circle at 50% 20%, #1a1a2e, #16213e, #0f0f1c);
+      --panel-bg: rgba(255,255,255,0.03);
+      --cell-bg: linear-gradient(145deg, #222, #2a2a3a);
+      --text-color: #ddd;
+      --shadow-glow: #ffaa33;
+      --x-color: #ff6b6b;
+      --o-color: #4ecdc4;
+      --card-bg: #1a1a2e;
+      --btn-bg: #2a2a3a;
+      --btn-border: #4a4a5a;
+    }
+    body.theme-light {
+      --bg-gradient: radial-gradient(circle at 50% 20%, #f5f7fa, #e9edf5, #d5dbe8);
+      --panel-bg: rgba(0,0,0,0.03);
+      --border-color: rgba(0,0,0,0.1);
+      --cell-bg: linear-gradient(145deg, #ffffff, #f0f0f5);
+      --text-color: #1a1a2e;
+      --shadow-glow: #4a6cf7;
+      --x-color: #e74c3c;
+      --o-color: #2ecc71;
+      --card-bg: #ffffff;
+      --btn-bg: #ffffff;
+      --btn-border: #ccc;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: var(--bg-gradient);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text-color);
+      overflow-x: hidden;
+      transition: background 0.4s ease, color 0.3s ease;
+    }
+    body {
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 12px 10px 20px;
+      position: relative;
+    }
+    /* ===== ANIMATED BG + FLOATING PARTICLES ===== */
+    #particles-canvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+    /* ===== LAYOUT ===== */
+    .app-container { position: relative; z-index: 1; width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; }
+    h1 {
+      font-size: clamp(2rem, 7vw, 3.2rem);
+      margin: 0 0 4px;
+      letter-spacing: 3px;
+      color: var(--shadow-glow);
+      text-shadow: 0 0 20px var(--shadow-glow), 0 0 60px var(--shadow-glow);
+      font-weight: 800;
+    }
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; align-items: center;
+      margin-bottom: 12px;
+      width: 100%;
+      transition: background 0.3s;
+    }
+    .field { display: flex; flex-direction: column; align-items: flex-start; font-size: .7rem; opacity: .8; gap: 2px; }
+    select, button {
+      padding: 6px 12px;
+      font-size: .85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--btn-bg);
+      color: var(--text-color);
+      border: 1px solid var(--btn-border);
+      outline: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    select:hover, button:hover { border-color: var(--shadow-glow); transform: scale(1.02); }
+    select:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .primary-btn {
+      background: linear-gradient(135deg, var(--shadow-glow), #7b2ff7);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 16px var(--shadow-glow);
+      border: none;
+    }
+    .primary-btn:hover { filter: brightness(1.1); transform: scale(1.03); }
+
+    .scoreboard {
+      display: flex; gap: 20px; margin-bottom: 8px;
+      font-size: .9rem; width: 100%; justify-content: center;
+    }
+    .score-item { text-align: center; min-width: 60px; }
+    .score-item .label { display:block; font-size: .65rem; opacity: .6; }
+    .score-item .value { font-size: 1.4rem; font-weight: 700; }
+    .score-x .value { color: var(--x-color); text-shadow: 0 0 10px var(--x-color); }
+    .score-o .value { color: var(--o-color); text-shadow: 0 0 10px var(--o-color); }
+    .score-d .value { color: #ffd166; text-shadow: 0 0 10px #ffd16666; }
+
+    .status {
+      font-size: 1.1rem; min-height: 28px; margin-bottom: 6px;
+      text-align: center; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .turn-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+
+    /* ===== BOARD ===== */
+    .board-wrapper {
+      position: relative; width: 100%; display: flex; justify-content: center;
+      touch-action: manipulation;
+    }
+    .board {
+      display: grid; gap: 8px; margin: 4px auto;
+      aspect-ratio: 1; width: min(420px, 85vw);
+      transition: gap 0.2s;
+      position: relative;
+    }
+    .board.shake { animation: shake 0.5s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-12px); }
+      40% { transform: translateX(12px); }
+      60% { transform: translateX(-8px); }
+      80% { transform: translateX(8px); }
+    }
+    .cell {
+      width: 100%; aspect-ratio: 1;
+      background: var(--cell-bg);
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 2.5rem;
+      cursor: pointer; user-select: none;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.3s ease, background 0.3s;
+    }
+    .cell:hover { transform: scale(1.04); box-shadow: 0 0 25px var(--shadow-glow); }
+    .cell:active { transform: scale(0.92); }
+    .cell.filled { cursor: default; }
+    .cell.filled:hover { transform: none; box-shadow: 0 0 12px rgba(0,0,0,0.4); }
+    .cell.X { color: var(--x-color); text-shadow: 0 0 15px var(--x-color); }
+    .cell.O { color: var(--o-color); text-shadow: 0 0 15px var(--o-color); }
+    .cell .mark { animation: pop 0.2s ease-out; }
+    @keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    /* Cell Glow Pulse (Winner) */
+    .cell.winner {
+      animation: glowPulse 0.9s ease-in-out infinite alternate;
+      z-index: 2;
+    }
+    @keyframes glowPulse {
+      0% { box-shadow: 0 0 10px #00ff99, inset 0 0 0 1px rgba(255,255,255,0.1); }
+      100% { box-shadow: 0 0 40px #00ff99, inset 0 0 0 2px rgba(255,255,255,0.4); }
+    }
+
+    /* Ripple Effect */
+    .ripple {
+      position: absolute; border-radius: 50%;
+      background: var(--shadow-glow); opacity: 0.5;
+      transform: scale(0); animation: rippleAnim 0.6s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes rippleAnim {
+      to { transform: scale(3); opacity: 0; }
+    }
+
+    /* ===== SVG OVERLAY (Winning Line) ===== */
+    .svg-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 10;
+    }
+    .svg-overlay line {
+      stroke: #00ff99; stroke-width: 6; stroke-linecap: round;
+      filter: drop-shadow(0 0 12px #00ff99);
+      stroke-dasharray: 1000; stroke-dashoffset: 1000;
+      animation: drawLine 0.6s ease forwards;
+    }
+    @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+    /* ===== PARTICLE CANVAS (Overlay) ===== */
+    #burst-canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 15;
+      border-radius: 12px;
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+    .controls button { padding: 8px 18px; font-size: .9rem; }
+
+    /* ===== LANDING PAGE ===== */
+    .landing {
+      position: fixed; inset: 0; z-index: 200;
+      background: var(--bg-gradient);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+    .landing.hide { opacity: 0; pointer-events: none; }
+    .landing-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 18px; padding: 34px 30px; text-align: center;
+      max-width: 340px; width: 90%;
+      box-shadow: 0 0 40px var(--shadow-glow);
+    }
+    .landing-card h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); margin-bottom: 4px; }
+    .logo-xo {
+      display: flex; justify-content: center; align-items: center; gap: 14px;
+      margin-bottom: 10px;
+    }
+    .logo-xo span {
+      font-size: 5rem; font-weight: 900;
+      animation: logoFloat 2.4s ease-in-out infinite;
+    }
+    .logo-xo .lx { color: var(--x-color); text-shadow: 0 0 18px var(--x-color); animation-delay: 0s; }
+    .logo-xo .lo { color: var(--o-color); text-shadow: 0 0 18px var(--o-color); animation-delay: 0.3s; }
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(-8deg); }
+    }
+    .logo-xo .lo { animation-name: logoFloatO; }
+    @keyframes logoFloatO {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(8deg); }
+    }
+    .back-btn {
+      position: absolute; top: 12px; left: 12px; z-index: 5;
+      padding: 8px 14px; border-radius: 8px; font-size: .85rem;
+      background: var(--btn-bg); color: var(--text-color); border: 1px solid var(--btn-border);
+      cursor: pointer;
+    }
+    .back-btn:hover { border-color: var(--shadow-glow); }
+    .landing-card p { opacity: .6; font-size: .85rem; margin-bottom: 22px; }
+    .landing-field { text-align: left; margin-bottom: 16px; }
+    .landing-field label { display: block; font-size: .8rem; opacity: .8; margin-bottom: 6px; }
+    .landing-field select { width: 100%; padding: 10px 12px; font-size: .95rem; }
+    .landing-toggle { display: flex; gap: 10px; }
+    .landing-toggle button {
+      flex: 1; padding: 10px; border-radius: 8px; font-size: .85rem;
+      background: var(--btn-bg); color: var(--text-color); border: 1px solid var(--btn-border);
+    }
+    .landing-toggle button.active {
+      background: linear-gradient(135deg, var(--shadow-glow), #7b2ff7);
+      color: #fff; border-color: transparent;
+    }
+    .landing-play {
+      width: 100%; padding: 14px; margin-top: 6px; font-size: 1.05rem;
+    }
+
+    /* ===== OVERLAY ===== */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .overlay.show { display: flex; }
+    .overlay-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 20px; padding: 30px 35px; text-align: center;
+      max-width: 340px; box-shadow: 0 0 60px var(--shadow-glow);
+      animation: pop 0.25s ease-out;
+      transition: background 0.3s;
+    }
+    .overlay-card h2 { margin: 0 0 6px; font-size: 1.8rem; color: var(--shadow-glow); }
+    .overlay-card p { opacity: .7; margin: 0 0 20px; }
+
+    footer { margin-top: 16px; font-size: .65rem; opacity: .4; text-align: center; width: 100%; }
+    kbd { background: #222; padding: 2px 8px; border-radius: 4px; border: 1px solid #444; font-size: .7rem; }
+
+    /* ===== RESPONSIVE (Landscape / Tablet) ===== */
+    @media (max-width: 600px) {
+      .panel { gap: 6px; padding: 8px 10px; }
+      .field { font-size: .6rem; }
+      select, button { padding: 4px 8px; font-size: .75rem; }
+      .board { width: min(380px, 80vw); gap: 6px; }
+      h1 { font-size: 2rem; }
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+      body { padding: 6px 10px; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+      .app-container { max-width: 55%; padding: 0; }
+      h1 { font-size: 1.6rem; margin: 0; }
+      .panel { padding: 6px 10px; margin-bottom: 6px; }
+      .board { width: min(300px, 50vh); gap: 5px; }
+      .scoreboard { margin-bottom: 4px; }
+      .controls { margin-top: 6px; }
+      .board-wrapper { max-width: 45%; }
+      footer { display: none; }
+    }
+    @media (min-width: 768px) {
+      .board { width: min(480px, 60vh); gap: 12px; }
+      .cell { border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background Particles -->
+<canvas id="particles-canvas"></canvas>
+
+<!-- Landing Page -->
+<div class="landing" id="landing">
+  <div class="landing-card">
+    <div class="logo-xo"><span class="lx">X</span><span class="lo">O</span></div>
+    <h1>TIC TAC TOE</h1>
+    <p>Choose your mode and settings to begin</p>
+    <div class="landing-field">
+      <label>Mode</label>
+      <select id="landingMode">
+        <option value="ai" selected>Vs Computer</option>
+        <option value="2p">2 Players</option>
+      </select>
+    </div>
+    <div class="landing-field">
+      <label>Sound</label>
+      <div class="landing-toggle">
+        <button type="button" id="soundOnBtn" class="active" onclick="setLandingSound(true)">🔊 On</button>
+        <button type="button" id="soundOffBtn" onclick="setLandingSound(false)">🔇 Off</button>
+      </div>
+    </div>
+    <button class="primary-btn landing-play" onclick="startFromLanding()">▶ Play</button>
+  </div>
+</div>
+
+<div class="app-container" id="appContainer" style="visibility:hidden;">
+  <button class="back-btn" onclick="goBackToLanding()">← Back</button>
+  <h1>TIC TAC TOE</h1>
+
+  <div class="panel">
+    <div class="field">Mode
+      <select id="gameMode">
+        <option value="2p">2 Players</option>
+        <option value="ai" selected>Vs Computer</option>
+      </select>
+    </div>
+    <div class="field">Grid
+      <select id="gridSizeSelect">
+        <option value="3" selected>3x3</option>
+        <option value="4">4x4</option>
+        <option value="5">5x5</option>
+        <option value="6">6x6</option>
+      </select>
+    </div>
+    <div class="field">Win
+      <select id="winLength"><option value="3" selected>3</option></select>
+    </div>
+    <div class="field">Theme
+      <select id="themeSelect">
+        <option value="neon">Neon</option>
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="scoreboard">
+    <div class="score-item score-x"><span class="label">PLAYER X</span><span class="value" id="scoreX">0</span></div>
+    <div class="score-item score-d"><span class="label">DRAWS</span><span class="value" id="scoreD">0</span></div>
+    <div class="score-item score-o"><span class="label" id="oLabel">CPU</span><span class="value" id="scoreO">0</span></div>
+  </div>
+
+  <div class="status" id="status"><span class="turn-dot" style="background:#ff4d6d;"></span>Player X's turn</div>
+
+  <div class="board-wrapper">
+    <div class="board" id="board">
+      <!-- SVG Overlay for winning line -->
+      <svg class="svg-overlay" id="svgOverlay"></svg>
+      <!-- Canvas for particle burst -->
+      <canvas id="burst-canvas"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary-btn" onclick="resetGame(true)">New Game</button>
+    <button id="undoBtn" onclick="undoMove()" disabled>↩ Undo</button>
+    <button onclick="resetScores()">Reset Scores</button>
+    <button id="soundBtn" onclick="toggleSound()">🔊 Sound</button>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-card">
+      <h2 id="overlayTitle">Winner!</h2>
+      <p id="overlaySub">Great move!</p>
+      <button class="primary-btn" onclick="closeOverlay()">Play Again</button>
+    </div>
+  </div>
+  <footer><kbd>R</kbd> New Game · <kbd>S</kbd> Reset Scores · <kbd>Z</kbd> Undo</footer>
+</div>
+
+<script>
+// ============================================================
+//  FULL GAME LOGIC WITH ALL ENHANCEMENTS
+// ============================================================
+
+// --- DOM refs ---
+const boardEl = document.getElementById('board');
+const statusEl = document.getElementById('status');
+const gameModeEl = document.getElementById('gameMode');
+const gridSizeEl = document.getElementById('gridSizeSelect');
+const winLenEl = document.getElementById('winLength');
+const themeSelect = document.getElementById('themeSelect');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlayTitle');
+const overlaySub = document.getElementById('overlaySub');
+const oLabel = document.getElementById('oLabel');
+const svgOverlay = document.getElementById('svgOverlay');
+const burstCanvas = document.getElementById('burst-canvas');
+const undoBtn = document.getElementById('undoBtn');
+
+// --- State ---
+let scoreX = 0, scoreO = 0, scoreD = 0;
+let gridSize = 3, winLength = 3, cells = [], currentPlayer = 'X', gameOver = false, vsAI = false;
+let isProcessing = false;
+let history = [];
+let moveCount = 0;
+
+// --- Scores (LocalStorage) ---
+try {
+  scoreX = parseInt(localStorage.getItem('ttt_x')) || 0;
+  scoreO = parseInt(localStorage.getItem('ttt_o')) || 0;
+  scoreD = parseInt(localStorage.getItem('ttt_d')) || 0;
+} catch(e) {}
+updateScoreUI();
+
+// ============================================================
+//  1. AUDIO ENGINE (Procedural Polish)
+// ============================================================
+let audioCtx = null;
+let soundOn = true;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, dur, type='sine', vol=0.12, delay=0) {
+  if (!soundOn || !audioCtx) return;
+  setTimeout(() => {
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }, delay * 1000);
+}
+function playClick() { playTone(600, 0.08, 'square', 0.06); }
+function playHover() { playTone(900, 0.03, 'sine', 0.02); }
+function playWin() { playTone(523, 0.15); setTimeout(()=>playTone(659, 0.15), 150); setTimeout(()=>playTone(784, 0.25), 300); }
+function playLose() { playTone(440, 0.15); setTimeout(()=>playTone(370, 0.15), 150); setTimeout(()=>playTone(330, 0.25), 300); }
+function playDraw() { playTone(300, 0.2, 'triangle', 0.08); setTimeout(()=>playTone(250, 0.25, 'triangle', 0.08), 200); }
+function playUI() { playTone(880, 0.05, 'sine', 0.04); }
+
+// ============================================================
+//  2. THEME SWITCHER
+// ============================================================
+function setTheme(theme) {
+  document.body.className = 'theme-' + theme;
+  localStorage.setItem('ttt_theme', theme);
+}
+themeSelect.addEventListener('change', (e) => setTheme(e.target.value));
+const savedTheme = localStorage.getItem('ttt_theme') || 'neon';
+themeSelect.value = savedTheme;
+setTheme(savedTheme);
+
+// ============================================================
+//  3. BG FLOATING PARTICLES (Canvas)
+// ============================================================
+const pCanvas = document.getElementById('particles-canvas');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+function resizeParticles() {
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+}
+resizeParticles();
+window.addEventListener('resize', resizeParticles);
+class BgParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * pCanvas.width;
+    this.y = Math.random() * pCanvas.height;
+    this.size = Math.random() * 1.8 + 0.4;
+    this.baseOpacity = Math.random() * 0.6 + 0.2;
+    this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+    this.twinklePhase = Math.random() * Math.PI * 2;
+    this.speedX = (Math.random() - 0.5) * 0.08;
+    this.speedY = (Math.random() - 0.5) * 0.08;
+    this.hue = Math.random() < 0.15 ? (Math.random() < 0.5 ? '180,220,255' : '255,210,180') : '255,255,255';
+  }
+  update() {
+    this.x += this.speedX; this.y += this.speedY;
+    this.twinklePhase += this.twinkleSpeed;
+    if (this.x < 0 || this.x > pCanvas.width || this.y < 0 || this.y > pCanvas.height) this.reset();
+  }
+  draw() {
+    const tw = (Math.sin(this.twinklePhase) + 1) / 2;
+    const opacity = this.baseOpacity * (0.4 + tw * 0.6);
+    pCtx.beginPath();
+    pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    pCtx.fillStyle = `rgba(${this.hue},${opacity})`;
+    pCtx.shadowBlur = this.size * 3;
+    pCtx.shadowColor = `rgba(${this.hue},${opacity})`;
+    pCtx.fill();
+    pCtx.shadowBlur = 0;
+  }
+}
+class ShootingStar {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * pCanvas.width;
+    this.y = Math.random() * pCanvas.height * 0.4;
+    this.len = Math.random() * 80 + 60;
+    this.speed = Math.random() * 8 + 10;
+    this.angle = Math.PI / 4;
+    this.life = 1;
+    this.active = false;
+    this.delay = Math.random() * 8000 + 4000;
+    setTimeout(() => { this.active = true; }, this.delay);
+  }
+  update() {
+    if (!this.active) return;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+    this.life -= 0.02;
+    if (this.life <= 0 || this.x > pCanvas.width || this.y > pCanvas.height) this.reset();
+  }
+  draw() {
+    if (!this.active) return;
+    const tailX = this.x - Math.cos(this.angle) * this.len;
+    const tailY = this.y - Math.sin(this.angle) * this.len;
+    const grad = pCtx.createLinearGradient(this.x, this.y, tailX, tailY);
+    grad.addColorStop(0, `rgba(255,255,255,${this.life})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    pCtx.strokeStyle = grad;
+    pCtx.lineWidth = 2;
+    pCtx.beginPath();
+    pCtx.moveTo(this.x, this.y);
+    pCtx.lineTo(tailX, tailY);
+    pCtx.stroke();
+  }
+}
+let shootingStars = [new ShootingStar(), new ShootingStar()];
+for (let i = 0; i < 140; i++) particles.push(new BgParticle());
+function animateBgParticles() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  shootingStars.forEach(s => { s.update(); s.draw(); });
+  requestAnimationFrame(animateBgParticles);
+}
+animateBgParticles();
+
+// ============================================================
+//  4. BURST PARTICLES (on Win/Lose)
+// ============================================================
+const burstCtx = burstCanvas.getContext('2d');
+let burstParticles = [];
+function resizeBurst() {
+  const rect = boardEl.getBoundingClientRect();
+  burstCanvas.width = rect.width;
+  burstCanvas.height = rect.height;
+}
+resizeBurst();
+window.addEventListener('resize', resizeBurst);
+
+class BurstParticle {
+  constructor(x, y, color) {
+    this.x = x; this.y = y;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 6 + 2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed - 1;
+    this.size = Math.random() * 6 + 3;
+    this.color = color;
+    this.life = 1;
+    this.decay = Math.random() * 0.02 + 0.015;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.vy += 0.08; // gravity
+    this.life -= this.decay;
+    this.size *= 0.99;
+  }
+  draw() {
+    burstCtx.globalAlpha = this.life;
+    burstCtx.fillStyle = this.color;
+    burstCtx.beginPath();
+    burstCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    burstCtx.fill();
+  }
+}
+
+// --- FIX 3: burstAt now uses querySelectorAll ---
+function burstAt(index, color) {
+  const rect = boardEl.getBoundingClientRect();
+  const allCells = boardEl.querySelectorAll('.cell');
+  const cellEl = allCells[index];
+  if (!cellEl) return;
+  const cRect = cellEl.getBoundingClientRect();
+  const x = cRect.left - rect.left + cRect.width/2;
+  const y = cRect.top - rect.top + cRect.height/2;
+  for (let i=0; i<30; i++) {
+    burstParticles.push(new BurstParticle(x, y, color));
+  }
+}
+function animateBurst() {
+  burstCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+  burstParticles = burstParticles.filter(p => p.life > 0.01);
+  burstParticles.forEach(p => { p.update(); p.draw(); });
+  if (burstParticles.length) requestAnimationFrame(animateBurst);
+}
+
+// ============================================================
+//  5. RIPPLE EFFECT
+// ============================================================
+function addRipple(e, cell) {
+  const rect = cell.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const size = rect.width * 0.6;
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (x - size/2) + 'px';
+  ripple.style.top = (y - size/2) + 'px';
+  ripple.style.background = currentPlayer === 'X' ? 'var(--x-color)' : 'var(--o-color)';
+  cell.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+// ============================================================
+//  6. WINNING LINE DRAW (SVG) - FIX 2
+// ============================================================
+function drawWinLine(winCells) {
+  const rect = boardEl.getBoundingClientRect();
+  const allCells = boardEl.querySelectorAll('.cell');
+  const first = allCells[winCells[0]];
+  const last = allCells[winCells[winCells.length-1]];
+  if (!first || !last) return;
+  const fRect = first.getBoundingClientRect();
+  const lRect = last.getBoundingClientRect();
+  const x1 = fRect.left - rect.left + fRect.width/2;
+  const y1 = fRect.top - rect.top + fRect.height/2;
+  const x2 = lRect.left - rect.left + lRect.width/2;
+  const y2 = lRect.top - rect.top + lRect.height/2;
+  const svg = document.getElementById('svgOverlay');
+  svg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#00ff99" stroke-width="6" stroke-linecap="round" filter="drop-shadow(0 0 12px #00ff99)" stroke-dasharray="1000" stroke-dashoffset="1000"/>`;
+  const line = svg.querySelector('line');
+  requestAnimationFrame(() => {
+    line.style.animation = 'drawLine 0.6s ease forwards';
+  });
+}
+
+// ============================================================
+//  7. CORE GAME FUNCTIONS
+// ============================================================
+function populateWinLengthOptions() {
+  const size = parseInt(gridSizeEl.value);
+  winLenEl.innerHTML = '';
+  for (let i = 3; i <= size; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    if (i === 3) opt.selected = true;
+    winLenEl.appendChild(opt);
+  }
+}
+
+function updateGridOptionsForMode() {
+  const mode = gameModeEl.value;
+  const isAI = mode === 'ai';
+  let current = parseInt(gridSizeEl.value);
+  for (let opt of gridSizeEl.options) {
+    const val = parseInt(opt.value);
+    opt.disabled = (isAI && val > 4);
+  }
+  if (isAI && current > 4) gridSizeEl.value = '3';
+  populateWinLengthOptions();
+  resetGame(true);
+}
+
+function createBoard() {
+  gridSize = parseInt(gridSizeEl.value);
+  winLength = parseInt(winLenEl.value);
+  cells = Array(gridSize * gridSize).fill(null);
+  history = [];
+  moveCount = 0;
+  undoBtn.disabled = true;
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+  // Re-add SVG and Canvas
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'svg-overlay');
+  svg.setAttribute('id', 'svgOverlay');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'burst-canvas';
+  canvas.style.position = 'absolute'; canvas.style.top='0'; canvas.style.left='0';
+  canvas.style.width='100%'; canvas.style.height='100%'; canvas.style.pointerEvents='none';
+  canvas.style.zIndex='15'; canvas.style.borderRadius='12px';
+  boardEl.appendChild(svg);
+  boardEl.appendChild(canvas);
+  // Cells
+  for (let i=0; i<cells.length; i++) {
+    const c = document.createElement('div');
+    c.classList.add('cell');
+    c.dataset.index = i;
+    c.addEventListener('click', handleMove);
+    c.addEventListener('mouseenter', (e) => { if (!c.classList.contains('filled')) playHover(); });
+    boardEl.appendChild(c);
+  }
+  updateBoardSize();
+  gameOver = false;
+  isProcessing = false;
+  updateStatus();
+  document.getElementById('svgOverlay').innerHTML = '';
+  burstParticles = [];
+  burstCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+}
+
+function updateBoardSize() {
+  const rect = boardEl.getBoundingClientRect();
+  const maxW = Math.min(480, window.innerWidth - 30);
+  const maxH = Math.min(480, window.innerHeight - 280);
+  let size = Math.min(maxW, maxH);
+  if (window.innerHeight < 500 && window.innerWidth > window.innerHeight) {
+    size = Math.min(size, window.innerHeight - 100);
+  }
+  boardEl.style.width = Math.max(200, size) + 'px';
+  boardEl.style.aspectRatio = '1';
+  const fs = (size / gridSize / 2.2) + 'px';
+  document.querySelectorAll('.cell').forEach(el => el.style.fontSize = fs);
+  resizeBurst();
+}
+
+function handleMove(e) {
+  if (isProcessing || gameOver) return;
+  const i = parseInt(e.currentTarget.dataset.index);
+  if (cells[i]) return;
+  initAudio();
+  addRipple(e, e.currentTarget);
+  playClick();
+  makeMove(i, currentPlayer);
+}
+
+// --- FIX 1: makeMove uses querySelectorAll ---
+function makeMove(i, player) {
+  cells[i] = player;
+  history.push({ index: i, player: player });
+  moveCount++;
+  undoBtn.disabled = false;
+  const allCells = boardEl.querySelectorAll('.cell');
+  const cellEl = allCells[i];
+  cellEl.classList.add(player, 'filled');
+  cellEl.innerHTML = `<span class="mark">${player}</span>`;
+  
+  const win = checkWin(player);
+  if (win) {
+    gameOver = true;
+    isProcessing = false;
+    win.forEach(idx => {
+      const c = allCells[idx];
+      if (c) c.classList.add('winner');
+    });
+    drawWinLine(win);
+    const color = player === 'X' ? '#ff4d6d' : '#00ffcc';
+    win.forEach(idx => burstAt(idx, color));
+    animateBurst();
+    if (player === 'X') { playWin(); scoreX++; }
+    else { 
+      if (vsAI) { playLose(); boardEl.classList.add('shake'); setTimeout(()=>boardEl.classList.remove('shake'), 600); }
+      else playWin();
+      scoreO++;
+    }
+    updateScoreUI(); saveScores();
+    overlayTitle.textContent = vsAI && player === 'O' ? 'Computer Wins!' : `Player ${player} Wins!`;
+    overlaySub.textContent = vsAI && player === 'O' ? 'Better luck next time!' : 'Nice one!';
+    statusEl.textContent = `Player ${player} wins!`;
+    setTimeout(() => overlay.classList.add('show'), 300);
+    return;
+  }
+  if (!cells.includes(null)) {
+    gameOver = true;
+    playDraw();
+    scoreD++; updateScoreUI(); saveScores();
+    overlayTitle.textContent = "It's a Draw!";
+    overlaySub.textContent = 'So close!';
+    statusEl.textContent = "It's a draw!";
+    setTimeout(() => overlay.classList.add('show'), 300);
+    return;
+  }
+  currentPlayer = (currentPlayer === 'X' ? 'O' : 'X');
+  updateStatus();
+  if (vsAI && currentPlayer === 'O' && !gameOver) {
+    isProcessing = true;
+    setTimeout(aiMove, 350);
+  }
+}
+
+// --- FIX 4: undoMove uses querySelectorAll ---
+function undoMove() {
+  if (gameOver || history.length === 0 || isProcessing) return;
+  if (vsAI && history.length === 1) return;
+  let undoCount = vsAI ? 2 : 1;
+  let undone = 0;
+  const allCells = boardEl.querySelectorAll('.cell');
+  while (history.length > 0 && undone < undoCount) {
+    const last = history.pop();
+    cells[last.index] = null;
+    const el = allCells[last.index];
+    if (el) {
+      el.classList.remove('X', 'O', 'filled', 'winner');
+      el.innerHTML = '';
+    }
+    undone++;
+    moveCount--;
+  }
+  if (history.length === 0) undoBtn.disabled = true;
+  if (vsAI) currentPlayer = 'X';
+  else currentPlayer = history.length > 0 ? (history[history.length-1].player === 'X' ? 'O' : 'X') : 'X';
+  gameOver = false;
+  overlay.classList.remove('show');
+  document.getElementById('svgOverlay').innerHTML = '';
+  burstParticles = [];
+  burstCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+  updateStatus();
+  playUI();
+}
+
+function closeOverlay() {
+  overlay.classList.remove('show');
+  resetGame(false);
+}
+
+function updateStatus() {
+  if (gameOver) return;
+  const color = currentPlayer === 'X' ? 'var(--x-color)' : 'var(--o-color)';
+  const who = vsAI && currentPlayer === 'O' ? 'Computer is thinking...' : `Player ${currentPlayer}'s turn`;
+  statusEl.innerHTML = `<span class="turn-dot" style="background:${color};box-shadow:0 0 12px ${color}"></span>${who}`;
+}
+
+function updateScoreUI() {
+  document.getElementById('scoreX').textContent = scoreX;
+  document.getElementById('scoreO').textContent = scoreO;
+  document.getElementById('scoreD').textContent = scoreD;
+}
+function saveScores() {
+  try {
+    localStorage.setItem('ttt_x', scoreX);
+    localStorage.setItem('ttt_o', scoreO);
+    localStorage.setItem('ttt_d', scoreD);
+  } catch(e) {}
+}
+function resetScores() {
+  if (!confirm('Reset all scores?')) return;
+  scoreX=0; scoreO=0; scoreD=0; updateScoreUI(); saveScores(); playUI();
+}
+function resetGame(randomStart) {
+  vsAI = gameModeEl.value === 'ai';
+  oLabel.textContent = vsAI ? 'CPU' : 'PLAYER O';
+  currentPlayer = randomStart ? (Math.random() < 0.5 ? 'X' : 'O') : 'X';
+  history = []; moveCount = 0; undoBtn.disabled = true;
+  gameOver = false; isProcessing = false;
+  overlay.classList.remove('show');
+  boardEl.classList.remove('shake');
+  document.getElementById('svgOverlay').innerHTML = '';
+  burstParticles = [];
+  burstCtx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+  createBoard();
+  if (vsAI && currentPlayer === 'O') {
+    isProcessing = true;
+    setTimeout(aiMove, 350);
+  }
+}
+
+// ============================================================
+//  8. AI (Hard) - Minimax for 3x3, Heuristic for 4x4
+// ============================================================
+function aiMove() {
+  if (gameOver) { isProcessing = false; return; }
+  let move = null;
+  if (gridSize === 3) move = minimaxMove();
+  else if (gridSize === 4) move = findHeuristicMove();
+  else move = findRandomMove();
+  if (move === null || move === undefined) { isProcessing = false; return; }
+  makeMove(move, 'O');
+  isProcessing = false;
+}
+
+function minimaxMove() {
+  let best = -Infinity, bestMove = null;
+  for (let i=0; i<cells.length; i++) {
+    if (!cells[i]) {
+      cells[i] = 'O';
+      const score = minimax(cells, 0, false);
+      cells[i] = null;
+      if (score > best) { best = score; bestMove = i; }
+    }
+  }
+  return bestMove;
+}
+function minimax(state, depth, isMax) {
+  const wO = checkWin('O'); if (wO) return 10 - depth;
+  const wX = checkWin('X'); if (wX) return depth - 10;
+  if (!state.includes(null)) return 0;
+  if (isMax) {
+    let b = -Infinity;
+    for (let i=0; i<state.length; i++) {
+      if (!state[i]) { state[i]='O'; b=Math.max(b, minimax(state, depth+1, false)); state[i]=null; }
+    } return b;
+  } else {
+    let b = Infinity;
+    for (let i=0; i<state.length; i++) {
+      if (!state[i]) { state[i]='X'; b=Math.min(b, minimax(state, depth+1, true)); state[i]=null; }
+    } return b;
+  }
+}
+function findHeuristicMove() {
+  let best = -1, moves = [];
+  const center = (gridSize-1)/2;
+  for (let i=0; i<cells.length; i++) {
+    if (cells[i]) continue;
+    let score = 0;
+    const row = Math.floor(i/gridSize), col = i%gridSize;
+    score += (4 - Math.abs(row-center) - Math.abs(col-center)) * 2;
+    score += evaluateCell(i, 'O') * 1.5;
+    score += evaluateCell(i, 'X') * 1.3;
+    if (score > best) { best = score; moves = [i]; }
+    else if (score === best) moves.push(i);
+  }
+  return moves.length ? moves[Math.floor(Math.random() * moves.length)] : findRandomMove();
+}
+function evaluateCell(index, player) {
+  let total=0; const dirs=[[1,0],[0,1],[1,1],[1,-1]];
+  const row=Math.floor(index/gridSize), col=index%gridSize;
+  for (const [dx,dy] of dirs) {
+    let count=0, open=0;
+    for (let k=-winLength+1; k<winLength; k++) {
+      const x=col+dx*k, y=row+dy*k;
+      if (x<0||x>=gridSize||y<0||y>=gridSize) continue;
+      const idx=y*gridSize+x;
+      if (idx===index) { open++; continue; }
+      if (cells[idx]===player) count++;
+      else if (cells[idx]===null) open++;
+      else { count=-999; break; }
+    }
+    if (count>=0) {
+      if (count===winLength-1 && open>=1) total+=1000;
+      else if (count===winLength-2 && open>=2) total+=50;
+      else total += count*3;
+    }
+  } return total;
+}
+function findRandomMove() {
+  const open = cells.map((v,i) => v===null ? i : null).filter(v=>v!==null);
+  return open.length ? open[Math.floor(Math.random()*open.length)] : null;
+}
+
+// ============================================================
+//  9. CHECK WIN
+// ============================================================
+function checkWin(player) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for (let r=0; r<gridSize; r++) {
+    for (let c=0; c<gridSize; c++) {
+      for (const [dx,dy] of dirs) {
+        const line = [];
+        for (let k=0; k<winLength; k++) {
+          const x = c+dx*k, y = r+dy*k;
+          if (x<0||x>=gridSize||y<0||y>=gridSize) break;
+          const idx = y*gridSize + x;
+          if (cells[idx]===player) line.push(idx);
+          else break;
+        }
+        if (line.length === winLength) return line;
+      }
+    }
+  } return null;
+}
+
+// ============================================================
+//  10. EVENT LISTENERS & INIT
+// ============================================================
+gridSizeEl.addEventListener('change', () => { updateGridOptionsForMode(); });
+winLenEl.addEventListener('change', () => resetGame(true));
+gameModeEl.addEventListener('change', () => { updateGridOptionsForMode(); });
+window.addEventListener('resize', () => { updateBoardSize(); resizeBurst(); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') { e.preventDefault(); resetGame(true); }
+  if (e.key === 's' || e.key === 'S') { e.preventDefault(); resetScores(); }
+  if (e.key === 'z' || e.key === 'Z') { if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); undoMove(); } }
+});
+
+// ============================================================
+//  11. LANDING PAGE
+// ============================================================
+const landingEl = document.getElementById('landing');
+const appContainerEl = document.getElementById('appContainer');
+const landingModeEl = document.getElementById('landingMode');
+const soundOnBtn = document.getElementById('soundOnBtn');
+const soundOffBtn = document.getElementById('soundOffBtn');
+
+function setLandingSound(on) {
+  soundOn = on;
+  soundOnBtn.classList.toggle('active', on);
+  soundOffBtn.classList.toggle('active', !on);
+  updateSoundBtn();
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  soundOnBtn.classList.toggle('active', soundOn);
+  soundOffBtn.classList.toggle('active', !soundOn);
+  if (soundOn) initAudio();
+  updateSoundBtn();
+  playUI();
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (btn) btn.textContent = soundOn ? '🔊 Sound' : '🔇 Muted';
+}
+
+function startFromLanding() {
+  gameModeEl.value = landingModeEl.value;
+  initAudio();
+  landingEl.classList.add('hide');
+  appContainerEl.style.visibility = 'visible';
+  setTimeout(() => { landingEl.style.display = 'none'; }, 400);
+  updateGridOptionsForMode();
+}
+
+function goBackToLanding() {
+  appContainerEl.style.visibility = 'hidden';
+  landingEl.style.display = 'flex';
+  requestAnimationFrame(() => landingEl.classList.remove('hide'));
+}
+
+populateWinLengthOptions();
+updateGridOptionsForMode();
+resetGame(true);
+</script>
+</body>
+</html>
